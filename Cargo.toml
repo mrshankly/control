@@ -1,0 +1,10 @@
+[package]
+name = "control-rs"
+version = "1.0.0"
+authors = ["João Marques"]
+edition = "2018"
+license = "CC0-1.0"
+
+[dependencies.num-traits]
+version = "0.2"
+default-features = false
