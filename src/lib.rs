@@ -2,21 +2,29 @@
 
 use num_traits::{self, float::FloatCore};
 
+/// Implementation of a PID controller.
+
 pub struct PID<T> {
     /// Desired setpoint.
     pub setpoint: T,
 
-    // Values from the previous update.
+    /// Error value from the previous update.
     error: T,
+    /// Integral value from the previous update.
     integral: T,
+    /// Derivative value from the previous update.
     derivative: T,
+    /// Previous measurement value.
     measurement: T,
 
-    // Controller gains and constants.
-    kp: T,
-    ki: T,
-    kd: T,
-    tc: T,
+    /// Proportional coefficient.
+    p: T,
+    /// Integral coefficient.
+    i: T,
+    /// Derivative coefficient.
+    d: T,
+    /// Coefficient for the derivative low-pass filter.
+    t: T,
 
     /// Lower bound of the integral term.
     imin: T,
@@ -30,9 +38,22 @@ pub struct PID<T> {
 }
 
 impl<T: FloatCore> PID<T> {
+    /// Creates a new `PID` with a proportional gain of `kp`, integral gain of `ki`
+    /// and derivative gain of `kd`.
+    ///
+    /// `tau` represents the time constant of the derivative low-pass filter.
+    ///
+    /// `sampling_time` is the time difference in seconds between two consecutive
+    /// update operations.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///
+    /// ```
     pub fn new(kp: T, ki: T, kd: T, tau: T, sampling_time: T, setpoint: T) -> Self {
-        let two = T::from(2.0_f32).unwrap();
-        let one_half = T::from(0.5_f32).unwrap();
+        let two = T::from(2.0).unwrap();
+        let one_half = T::from(0.5).unwrap();
 
         Self {
             setpoint,
@@ -42,10 +63,10 @@ impl<T: FloatCore> PID<T> {
             derivative: T::zero(),
             measurement: T::zero(),
 
-            kp,
-            ki: ki * sampling_time * one_half,
-            kd: kd * -two,
-            tc: (two * tau - sampling_time) / (two * tau + sampling_time),
+            p: kp,
+            i: one_half * ki * sampling_time,
+            d: -(two * kd),
+            t: (two * tau - sampling_time) / (two * tau + sampling_time),
 
             imin: T::neg_infinity(),
             imax: T::infinity(),
@@ -55,6 +76,20 @@ impl<T: FloatCore> PID<T> {
         }
     }
 
+    /// Indicates that the integral term should be restricted to a certain interval.
+    /// Useful to prevent [integral windup].
+    ///
+    /// [integral windup]: https://en.wikipedia.org/wiki/PID_controller#Integral_windup
+    ///
+    /// # Panics
+    ///
+    /// Panics if `min` > `max`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///
+    /// ```
     pub fn bound_integral(&mut self, min: T, max: T) -> &mut Self {
         assert!(min <= max);
         self.imin = min;
@@ -62,6 +97,17 @@ impl<T: FloatCore> PID<T> {
         self
     }
 
+    /// Indicates that the controller output should be restricted to a certain interval.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `min` > `max`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///
+    /// ```
     pub fn bound_output(&mut self, min: T, max: T) -> &mut Self {
         assert!(min <= max);
         self.omin = min;
@@ -72,12 +118,12 @@ impl<T: FloatCore> PID<T> {
     pub fn update(&mut self, measurement: T) -> T {
         let error = self.setpoint - measurement;
 
-        let proportional = self.kp * error;
+        let proportional = self.p * error;
         // Calculate integral term and clamp it to prevent windup.
-        let integral = self.ki * (error + self.error) + self.integral;
+        let integral = self.i * (error + self.error) + self.integral;
         self.integral = num_traits::clamp(integral, self.imin, self.imax);
         // Derivative on measurement to prevent a kick during setpoint changes.
-        self.derivative = self.kd * (measurement - self.measurement) + self.tc * self.derivative;
+        self.derivative = self.d * (measurement - self.measurement) + self.t * self.derivative;
 
         let output = proportional + self.integral + self.derivative;
         num_traits::clamp(output, self.omin, self.omax)
