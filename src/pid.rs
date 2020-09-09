@@ -128,11 +128,3 @@ impl<T: FloatCore> PID<T> {
         num_traits::clamp(output, self.omin, self.omax)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test() {
-        assert!(true);
-    }
-}
