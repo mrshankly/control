@@ -1,9 +1,16 @@
 [package]
 name = "control"
 version = "1.0.0"
-authors = ["João Marques"]
 edition = "2018"
+authors = ["João Marques"]
 license = "CC0-1.0"
+description = "Control loop mechanisms."
+homepage = "https://crates.io/crates/control"
+documentation = "https://docs.rs/control"
+repository = "https://github.com/mrshankly/control"
+readme = "README.md"
+keywords = ["pid"]
+categories = ["no-std"]
 
 [dependencies.num-traits]
 version = "0.2"
